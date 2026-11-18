@@ -7,6 +7,9 @@ Without a connected key, demo mode uses locally generated sample notes. Other
 questions require Gemini; if it is unavailable the app shows an error rather
 than presenting sample stories as answers. Replace the prefilled example
 stories with your own experience.
+Text model discovery prefers current Gemini Flash models and can try another
+discovered model when Google reports that a model is unavailable to the account.
+An explicit `GEMINI_TEXT_MODEL` override disables that fallback.
 
 ## Deploy
 
