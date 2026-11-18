@@ -2,7 +2,11 @@
 
 A browser-based interview practice assistant using Gemini. Audio from the
 microphone goes directly from the browser to Gemini; the serverless endpoints
-check the key, create a short-lived audio token, and generate answer bullets.
+check the key, create a short-lived audio token, and generate explanatory answers.
+Without a connected key, demo mode uses locally generated sample notes. Other
+questions require Gemini; if it is unavailable the app shows an error rather
+than presenting sample stories as answers. Replace the prefilled example
+stories with your own experience.
 
 ## Deploy
 

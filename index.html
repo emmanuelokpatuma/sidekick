@@ -20,6 +20,7 @@
     <section class="panel glass" aria-label="Context">
       <h2>1 · Context it answers from</h2>
       <p class="sub">In the shipping product this is built from the CV and job description. Here you paste it.</p>
+      <p class="hint">The prefilled stories are examples, not your experience. Replace them with your own before using answers.</p>
 
       <label for="role">Role you're interviewing for</label>
       <input id="role" type="text" spellcheck="false" />
@@ -63,7 +64,7 @@
         <div class="ov-block answer-block">
           <div class="ov-label">Say this <span class="lat" id="latency"></span></div>
           <div class="ov-answer" id="answer">
-            <div class="placeholder">Bullets appear here.</div>
+            <div class="placeholder">An answer appears here.</div>
           </div>
         </div>
         <div class="ov-foot mono" id="ovFoot">detection: 1.1s silence &nbsp;·&nbsp; space = answer now</div>
@@ -84,7 +85,7 @@
 
   <footer class="foot">
     What is real here: microphone audio at 16 kHz → Gemini Live over a WebSocket → streaming transcript →
-    silence-based question detection → a Gemini text call → bullets on screen, with the latency shown.
+    silence-based question detection → a Gemini text call → an explanatory answer, with the latency shown.
     What is not: the audio is your microphone, not the interviewer's system audio, and the overlay is a page
     rather than a transparent window over your video call. Both of those are desktop-app work, not model work.
   </footer>

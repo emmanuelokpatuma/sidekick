@@ -2,8 +2,8 @@
  *
  * Two answer engines behind one interface:
  *   gemini  — real: mic -> PCM16 16k -> Gemini Live (WebSocket) -> streaming
- *             transcript -> question detection -> Gemini text call -> bullets.
- *   local   — offline fallback so the page is never dead without a key.
+ *             transcript -> question detection -> Gemini text call -> answer.
+ *   local   — offline sample notes for demo mode only.
  *
  * Pipeline is the product. The only fake part left is that audio comes from your
  * mic instead of the interviewer's system audio, which is a desktop concern.
@@ -122,7 +122,7 @@ function bestStory(tokens, question) {
     return { story, score };
   });
   boosted.sort((a, b) => b.score - a.score);
-  return boosted[0].score > 0 ? boosted[0].story : state.stories[0];
+  return boosted[0].score > 0 ? boosted[0].story : null;
 }
 
 function matchedTags(story, tokens) {
@@ -249,6 +249,13 @@ function renderThinking(label) {
 function renderAnswer(answer) {
   const el = $("answer");
   el.innerHTML = "";
+  if (typeof answer.answer === "string" && answer.answer.trim()) {
+    const text = document.createElement("p");
+    text.className = "ans-text";
+    text.textContent = answer.answer;
+    el.appendChild(text);
+    return;
+  }
   const head = document.createElement("div");
   head.className = "ans-head";
   head.textContent = answer.headline || "Answer";
@@ -266,7 +273,7 @@ function renderAnswer(answer) {
 }
 
 function clearAnswer() {
-  $("answer").innerHTML = '<div class="placeholder">Bullets appear here.</div>';
+  $("answer").innerHTML = '<div class="placeholder">An answer appears here.</div>';
   $("latency").textContent = "";
 }
 
@@ -289,7 +296,7 @@ function renderEngine() {
   if (!health.configured) {
     el.innerHTML = health.warning
       ? `<span class="warn">Gemini not connected — ${escapeHtml(health.warning)}</span>`
-      : '<span class="warn">Local composer — paste a Gemini key to switch the real thing on.</span>';
+      : '<span class="warn">Gemini not connected — paste a Gemini key and click Connect for answers.</span>';
     $("micHint").textContent = "Without a key, Use my mic falls back to the browser's own speech recognition. Demo needs nothing.";
     return;
   }
@@ -318,14 +325,15 @@ async function checkHealth() {
   try {
     const res = await fetch("api/health", { headers: keyHeaders(), cache: "no-store" });
     const body = await res.json();
+    if (!res.ok) throw new Error(body.error || `health check failed (${res.status})`);
     health = {
       configured: Boolean(body.configured),
       liveModel: body.liveModel || "",
       textModel: body.textModel || "",
-      warning: body.warning || (body.configured ? "" : ""),
+      warning: body.warning || "",
     };
   } catch (e) {
-    health = { configured: false, liveModel: "", textModel: "", warning: "server not running" };
+    health = { configured: false, liveModel: "", textModel: "", warning: e.message || "health check failed" };
   }
   renderEngine();
 }
@@ -358,7 +366,8 @@ async function finalizeQuestion(text, detectedAt) {
 
   const started = Date.now();
   let answer = null;
-  let engineName = "local";
+  let engineName = "";
+  let statusMessage = "";
 
   if (health.configured && apiKeyWanted()) {
     renderThinking("Gemini is writing…");
@@ -370,22 +379,30 @@ async function finalizeQuestion(text, detectedAt) {
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || "answer failed");
-      answer = { headline: body.headline, bullets: body.bullets };
+      if (typeof body.answer !== "string" || !body.answer.trim()) {
+        throw new Error("Gemini returned an empty answer");
+      }
+      answer = { answer: body.answer };
       engineName = body.model || "gemini";
     } catch (e) {
-      $("ovFoot").textContent = "Gemini error: " + e.message + " — showed a local answer instead";
-      answer = composeAnswer(question);
+      statusMessage = "Gemini error: " + e.message;
+      answer = { answer: "Could not generate an answer. " + statusMessage };
     }
-  } else {
+  } else if (state.mode === "demo") {
     answer = composeAnswer(question);
+    engineName = "local demo";
+  } else {
+    statusMessage = health.warning ? "Gemini not connected: " + health.warning : "Gemini not connected. Paste your key and click Connect.";
+    answer = { answer: statusMessage };
   }
 
   if (state.cancelled && state.mode === "idle") return;
 
   renderAnswer(answer);
   const ms = Date.now() - started;
-  $("latency").textContent = `${engineName === "local" ? "local" : engineName} · ${ms} ms`;
-  if (detectedAt) $("ovFoot").textContent = `detected → bullets in ${Date.now() - detectedAt} ms`;
+  $("latency").textContent = engineName ? `${engineName} · ${ms} ms` : "";
+  if (statusMessage) $("ovFoot").textContent = statusMessage;
+  else if (detectedAt) $("ovFoot").textContent = `detected → ${engineName === "local demo" ? "demo notes" : "answer"} in ${Date.now() - detectedAt} ms`;
   state.buffer = "";
   state.interim = "";
   state.pendingAnswer = false;
@@ -393,7 +410,7 @@ async function finalizeQuestion(text, detectedAt) {
   if (state.running) setState(state.mode === "gemini" ? "listening" : "listening", true);
 }
 
-// Use Gemini whenever it is configured; the local composer is only the fallback.
+// Use Gemini whenever it is configured.
 function apiKeyWanted() {
   return health.configured;
 }

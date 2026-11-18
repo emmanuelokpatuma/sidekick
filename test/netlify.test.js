@@ -58,7 +58,7 @@ test("Netlify forwards the key and request body through the answer endpoint", as
       });
     }
     return Response.json({
-      candidates: [{ content: { parts: [{ text: "HEADLINE: Test answer\n- My example" }] } }],
+      candidates: [{ content: { parts: [{ text: "I would start by listening to the team.\n\nThen I would use that context to choose the next step." }] } }],
     });
   };
   try {
@@ -68,10 +68,11 @@ test("Netlify forwards the key and request body through the answer endpoint", as
       body: JSON.stringify({ question: "Why this role?" }),
     }));
     assert.equal(response.status, 200);
-    assert.deepEqual((await response.json()).bullets, ["My example"]);
+    assert.equal((await response.json()).answer, "I would start by listening to the team.\n\nThen I would use that context to choose the next step.");
     assert.equal(calls.length, 2);
     assert.equal(calls[0].options.headers["x-goog-api-key"], "adapter-test-key");
     assert.match(calls[1].options.body, /Why this role\?/);
+    assert.match(calls[1].options.body, /one or two short paragraphs/i);
   } finally {
     global.fetch = originalFetch;
   }
