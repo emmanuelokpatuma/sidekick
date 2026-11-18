@@ -70,3 +70,39 @@ test("does not retry unrelated errors or override a specified model", async () =
     global.fetch = originalFetch;
   }
 });
+
+test("tries a different model when Gemini reports high demand", async () => {
+  const originalFetch = global.fetch;
+  const calls = [];
+  global.fetch = async (url) => {
+    calls.push(url);
+    if (calls.length === 1) return Response.json({ error: { message: "The model is overloaded. Please try again later." } }, { status: 503 });
+    return answerResponse();
+  };
+  try {
+    const models = { textModel: "first", textModels: ["first", "second"] };
+    assert.equal((await generateAnswer("test", models, { question: "What is IaC?" })).answer, "An explanatory answer.");
+    assert.equal(models.textModel, "second");
+    assert.equal(calls.length, 2);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});
+
+test("reports the final overload without endlessly retrying", async () => {
+  const originalFetch = global.fetch;
+  let calls = 0;
+  global.fetch = async () => {
+    calls++;
+    return Response.json({ error: { message: "High demand" } }, { status: 503 });
+  };
+  try {
+    await assert.rejects(
+      generateAnswer("test", { textModel: "first", textModels: ["first", "second"] }, { question: "What is IaC?" }),
+      /second: High demand.*try again shortly/
+    );
+    assert.equal(calls, 2);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});

@@ -8,7 +8,9 @@ questions require Gemini; if it is unavailable the app shows an error rather
 than presenting sample stories as answers. Replace the prefilled example
 stories with your own experience.
 Text model discovery prefers current Gemini Flash models and can try another
-discovered model when Google reports that a model is unavailable to the account.
+discovered model when Google reports that a model is unavailable to the account
+or temporarily overloaded (HTTP 503). If all available models fail, the app
+shows the last error. Quota errors are not automatically retried.
 An explicit `GEMINI_TEXT_MODEL` override disables that fallback.
 
 ## Deploy
