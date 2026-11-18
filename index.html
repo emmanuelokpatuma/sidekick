@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sidekick — interview copilot MVP</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <strong>Sidekick</strong>
+      <span class="tag" id="engineTag">MVP</span>
+    </div>
+    <div class="mode" id="modePill">idle</div>
+  </header>
+
+  <main class="layout">
+    <section class="panel glass" aria-label="Context">
+      <h2>1 · Context it answers from</h2>
+      <p class="sub">In the shipping product this is built from the CV and job description. Here you paste it.</p>
+
+      <label for="role">Role you're interviewing for</label>
+      <input id="role" type="text" spellcheck="false" />
+
+      <label for="stories">Evidence — one per line:
+        <span class="mono">title | tags | what you did | result</span>
+      </label>
+      <textarea id="stories" spellcheck="false" rows="9"></textarea>
+
+      <div class="row">
+        <button id="save" class="btn ghost">Save context</button>
+        <button id="reset" class="btn tiny">Reset to example</button>
+      </div>
+      <p class="hint" id="saveHint">Saved locally in this browser.</p>
+
+      <hr class="rule" />
+
+      <h2>2 · Gemini key</h2>
+      <p class="sub">Copy the key from Google AI Studio (it starts with <span class="mono">AQ.</span>), then paste it here. The field shows dots, so you won't see the characters — that is normal.</p>
+      <div class="keyrow">
+        <input id="key" type="password" placeholder="AQ.… or AIza…" spellcheck="false" autocomplete="off" aria-label="Gemini API key" />
+        <button id="keyPaste" class="btn small">Paste</button>
+        <button id="keySave" class="btn small primary">Connect</button>
+      </div>
+      <p class="hint" id="keyHint">Copy the key in the other tab, then click <b>Paste</b> (or click the field and press Ctrl+V, ⌘V on Mac) and press <b>Connect</b>.</p>
+    </section>
+
+    <section class="stage" aria-label="Overlay">
+      <div class="overlay glass" id="overlay">
+        <div class="ov-head">
+          <span class="live" id="liveBadge">◉ <span id="ovState">standby</span></span>
+          <span class="meter" aria-hidden="true"><i id="level"></i></span>
+          <span class="clock" id="ovClock">00:00</span>
+        </div>
+        <div class="ov-block">
+          <div class="ov-label">Interviewer</div>
+          <div class="ov-transcript" id="transcript">
+            <span class="placeholder">Press <em>Run demo</em> or <em>Use my mic</em>.</span>
+          </div>
+        </div>
+        <div class="ov-block answer-block">
+          <div class="ov-label">Say this <span class="lat" id="latency"></span></div>
+          <div class="ov-answer" id="answer">
+            <div class="placeholder">Bullets appear here.</div>
+          </div>
+        </div>
+        <div class="ov-foot mono" id="ovFoot">detection: 1.1s silence &nbsp;·&nbsp; space = answer now</div>
+      </div>
+
+      <div class="controls">
+        <button id="demo" class="btn primary">▶ Run demo</button>
+        <button id="mic" class="btn">🎙 Use my mic</button>
+        <button id="stop" class="btn ghost" disabled>Stop</button>
+        <form id="askForm" class="ask">
+          <input id="ask" type="text" placeholder="…or type a question and press Enter" spellcheck="false" />
+        </form>
+      </div>
+      <p class="hint" id="micHint">Mic goes straight to Gemini Live. Speak, or type a question. Space = answer now.</p>
+      <p class="hint engine" id="engine">Checking for a Gemini key…</p>
+    </section>
+  </main>
+
+  <footer class="foot">
+    What is real here: microphone audio at 16 kHz → Gemini Live over a WebSocket → streaming transcript →
+    silence-based question detection → a Gemini text call → bullets on screen, with the latency shown.
+    What is not: the audio is your microphone, not the interviewer's system audio, and the overlay is a page
+    rather than a transparent window over your video call. Both of those are desktop-app work, not model work.
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

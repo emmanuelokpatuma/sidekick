@@ -1,0 +1,13 @@
+{
+  "name": "sidekick-mvp",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Interview copilot MVP: Gemini Live transcription, detected questions, answer bullets.",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build:netlify": "node scripts/build-netlify.js",
+    "test": "node --test"
+  }
+}
