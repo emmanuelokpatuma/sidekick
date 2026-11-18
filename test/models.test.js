@@ -106,3 +106,21 @@ test("reports the final overload without endlessly retrying", async () => {
     global.fetch = originalFetch;
   }
 });
+
+test("tries another model after a timeout and reports a final timeout", async () => {
+  const originalFetch = global.fetch;
+  let calls = 0;
+  global.fetch = async () => {
+    calls++;
+    throw new DOMException("Timed out", "TimeoutError");
+  };
+  try {
+    await assert.rejects(
+      generateAnswer("test", { textModel: "first", textModels: ["first", "second"] }, { question: "What is IaC?" }),
+      /second: Gemini took too long/
+    );
+    assert.equal(calls, 2);
+  } finally {
+    global.fetch = originalFetch;
+  }
+});

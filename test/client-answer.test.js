@@ -41,6 +41,8 @@ test("unconnected typed questions show connection guidance, not a sample story",
 test("Gemini errors are shown without falling back to a sample story", async () => {
   const { context, elements } = client(async () => ({
     ok: false,
+    status: 502,
+    headers: new Headers({ "content-type": "application/json" }),
     json: async () => ({ error: "quota exceeded" }),
   }));
   vm.runInContext('state.stories = parseStories(DEFAULT_STORIES); state.mode = "typed"; state.running = true; health.configured = true;', context);
@@ -58,10 +60,36 @@ test("demo story selection does not default to the first unrelated story", () =>
 test("Gemini answer is rendered as explanatory text", async () => {
   const { context, elements } = client(async () => ({
     ok: true,
+    status: 200,
+    headers: new Headers({ "content-type": "application/json" }),
     json: async () => ({ answer: "Infrastructure as code manages infrastructure using definitions in files.", model: "test-model" }),
   }));
   vm.runInContext('state.mode = "typed"; state.running = true; health.configured = true;', context);
   await vm.runInContext('finalizeQuestion("What is infrastructure as code?", Date.now())', context);
   assert.match(elements.get("answer").children[0].textContent, /manages infrastructure/);
   assert.equal(elements.get("latency").textContent.startsWith("test-model"), true);
+});
+
+test("HTML error responses show HTTP status instead of a JSON parser error", async () => {
+  const { context, elements } = client(async () => ({
+    ok: false,
+    status: 504,
+    redirected: false,
+    headers: new Headers({ "content-type": "text/html" }),
+  }));
+  vm.runInContext('state.mode = "typed"; state.running = true; health.configured = true;', context);
+  await vm.runInContext('finalizeQuestion("What is infrastructure as code?", Date.now())', context);
+  assert.match(elements.get("answer").children[0].textContent, /server timed out \(HTTP 504\)/);
+});
+
+test("HTML sign-in responses provide access guidance", async () => {
+  const { context, elements } = client(async () => ({
+    ok: true,
+    status: 200,
+    redirected: true,
+    headers: new Headers({ "content-type": "text/html" }),
+  }));
+  vm.runInContext('state.mode = "typed"; state.running = true; health.configured = true;', context);
+  await vm.runInContext('finalizeQuestion("Hello?", Date.now())', context);
+  assert.match(elements.get("answer").children[0].textContent, /Sign in to Netlify/);
 });

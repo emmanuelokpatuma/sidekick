@@ -321,11 +321,31 @@ function keyHeaders() {
   return key ? { "x-gemini-key": key } : {};
 }
 
+async function readApiResponse(res, action) {
+  const contentType = res.headers.get("content-type") || "";
+  if (!contentType.toLowerCase().includes("application/json")) {
+    if (res.status === 401 || res.status === 403 || res.redirected) {
+      throw new Error(`${action}: access was blocked or a sign-in page was returned (HTTP ${res.status}). Sign in to Netlify and try again.`);
+    }
+    if (res.status === 504) {
+      throw new Error(`${action}: the server timed out (HTTP 504). Please try again.`);
+    }
+    throw new Error(`${action}: the server returned an unexpected response (HTTP ${res.status}). Please try again.`);
+  }
+  let body;
+  try {
+    body = await res.json();
+  } catch (e) {
+    throw new Error(`${action}: the server returned invalid JSON (HTTP ${res.status}).`);
+  }
+  if (!res.ok) throw new Error(body.error || `${action} failed (HTTP ${res.status})`);
+  return body;
+}
+
 async function checkHealth() {
   try {
     const res = await fetch("api/health", { headers: keyHeaders(), cache: "no-store" });
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.error || `health check failed (${res.status})`);
+    const body = await readApiResponse(res, "Key check");
     health = {
       configured: Boolean(body.configured),
       liveModel: body.liveModel || "",
@@ -377,8 +397,7 @@ async function finalizeQuestion(text, detectedAt) {
         headers: { "Content-Type": "application/json", ...keyHeaders() },
         body: JSON.stringify({ question, role: state.role, stories: state.stories }),
       });
-      const body = await res.json();
-      if (!res.ok) throw new Error(body.error || "answer failed");
+      const body = await readApiResponse(res, "Answer request");
       if (typeof body.answer !== "string" || !body.answer.trim()) {
         throw new Error("Gemini returned an empty answer");
       }
@@ -522,8 +541,7 @@ async function startGeminiMic() {
   let minted;
   try {
     const res = await fetch("api/token", { method: "POST", headers: keyHeaders() });
-    minted = await res.json();
-    if (!res.ok) throw new Error(minted.error || "token request failed");
+    minted = await readApiResponse(res, "Audio token request");
   } catch (e) {
     $("micHint").textContent = "Couldn't start Gemini: " + e.message;
     $("micHint").classList.add("good");
